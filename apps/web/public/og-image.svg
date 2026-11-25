@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#f7f8f5"/>
+  <rect x="70" y="70" width="1060" height="490" rx="42" fill="#1f6f5c"/>
+  <circle cx="960" cy="140" r="150" fill="#19594b"/>
+  <circle cx="1080" cy="540" r="180" fill="#e0a458" opacity=".85"/>
+  <text x="140" y="255" fill="#ffffff" font-family="Arial, sans-serif" font-size="86" font-weight="700">Deutsch Studio</text>
+  <text x="145" y="345" fill="#d7ebe1" font-family="Arial, sans-serif" font-size="40">German, made clear.</text>
+  <text x="145" y="430" fill="#ffffff" font-family="Arial, sans-serif" font-size="28">Live classes · Recordings · Homework · Reports</text>
+</svg>

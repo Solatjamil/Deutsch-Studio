@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#1f6f5c" />
+    <title>Deutsch Studio — Learn German with structure</title>
+    <meta name="description" content="Deutsch Studio is a German-language coaching platform with live classes, recordings, attendance, fees, homework, performance reports and study material for students, parents and tutors." />
+    <link rel="canonical" href="https://deutschstudio.demo/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Deutsch Studio — Learn German with structure" />
+    <meta property="og:description" content="Live and recorded German classes, clear progress reports and simple class management in one place." />
+    <meta property="og:image" content="https://deutschstudio.demo/og-image.svg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "EducationalOrganization",
+            "@id": "https://deutschstudio.demo/#org",
+            "name": "Deutsch Studio",
+            "url": "https://deutschstudio.demo/",
+            "description": "German-language coaching institute offering live and recorded courses from A1 to C1, exam preparation and conversation practice.",
+            "email": "hello@deutschstudio.demo",
+            "address": { "@type": "PostalAddress", "addressLocality": "Sahiwal", "addressRegion": "Punjab", "addressCountry": "PK" }
+          },
+          {
+            "@type": "Course",
+            "@id": "https://deutschstudio.demo/#course-a1",
+            "name": "German A1 Foundation",
+            "description": "An eight-week foundational German course with live classes, recordings, homework and personal feedback.",
+            "provider": { "@id": "https://deutschstudio.demo/#org" },
+            "inLanguage": "de",
+            "courseMode": "online",
+            "educationalLevel": "A1"
+          },
+          {
+            "@type": "FAQPage",
+            "@id": "https://deutschstudio.demo/#faq",
+            "mainEntity": [
+              { "@type": "Question", "name": "Which German levels are offered?", "acceptedAnswer": { "@type": "Answer", "text": "Courses are available from A1 beginner to C1 advanced, plus Goethe, TestDaF and telc exam preparation and a conversation club." } },
+              { "@type": "Question", "name": "Can parents follow their child's progress?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Linked parent accounts can view attendance, homework status, fee status, report cards and announcements, and can pay fees." } },
+              { "@type": "Question", "name": "Are recorded classes available?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Every course has recorded lessons organised by module, with playback speed control, bookmarks and progress tracking." } }
+            ]
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
