@@ -14,6 +14,7 @@ export default function Chat() {
   const [text, setText] = useState('');
   const [typing, setTyping] = useState('');
   const socket = useRef<WebSocket | null>(null);
+  const messagesRef = useRef<any[]>([]);
   const endRef = useRef<HTMLDivElement>(null);
   const [report, setReport] = useState<any>(null);
   const [reportReason, setReportReason] = useState('');
@@ -22,6 +23,7 @@ export default function Chat() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { if (rooms?.length && !roomId) setRoomId(rooms[0].id); }, [rooms, roomId]);
+  useEffect(() => { messagesRef.current = messages || []; }, [messages]);
 
   useEffect(() => {
     if (!roomId) return;
@@ -36,6 +38,28 @@ export default function Chat() {
       } catch { /* ignore */ }
     };
     return () => { ws.close(); socket.current = null; };
+  }, [roomId, setMessages]);
+
+  // Serverless fallback: REST polling whenever the realtime socket is absent
+  // (Vercel has no persistent WebSocket server). No extra config required.
+  useEffect(() => {
+    if (!roomId) return;
+    let active = true;
+    const timer = window.setInterval(async () => {
+      if (!active || document.visibilityState !== 'visible') return;
+      if (socket.current?.readyState === WebSocket.OPEN) return;
+      try {
+        const lastId = messagesRef.current.reduce((max, m) => Math.max(max, Number(m.id) || 0), 0);
+        const fresh = await api.get(`/chat/rooms/${roomId}/messages?after=${lastId}`);
+        if (!active || !Array.isArray(fresh) || !fresh.length) return;
+        setMessages((prev) => {
+          const seen = new Set((prev || []).map((m) => m.id));
+          const additions = fresh.filter((m) => !seen.has(m.id));
+          return additions.length ? [...(prev || []), ...additions] : prev;
+        });
+      } catch { /* polling is best-effort */ }
+    }, 3000);
+    return () => { active = false; window.clearInterval(timer); };
   }, [roomId, setMessages]);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, [messages?.length]);

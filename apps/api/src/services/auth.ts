@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { nanoid } from 'nanoid';
 import type { Response } from 'express';
 import { ACCESS_TTL, DEV_OTP, JWT_SECRET, NODE_ENV, REFRESH_SECRET, REFRESH_TTL_DAYS } from '../config.js';
-import { db, now, run } from '../db/index.js';
+import { all, get, now, run } from '../db/index.js';
 
 export type SafeUser = { id: number; name: string; role: string; email?: string | null; phone?: string; level?: string | null; batch_id?: number | null };
 export const publicUser = (u: any): SafeUser => ({
@@ -13,12 +13,12 @@ export const publicUser = (u: any): SafeUser => ({
 
 const cookieOpts = { httpOnly: true, sameSite: 'lax' as const, secure: NODE_ENV === 'production' };
 
-export function issueTokens(res: Response, user: SafeUser) {
+export async function issueTokens(res: Response, user: SafeUser) {
   const access = jwt.sign({ id: user.id, role: user.role, name: user.name }, JWT_SECRET, { expiresIn: ACCESS_TTL });
   const refresh = jwt.sign({ id: user.id, type: 'refresh', jti: nanoid(16) }, REFRESH_SECRET, { expiresIn: `${REFRESH_TTL_DAYS}d` });
   const tokenHash = bcrypt.hashSync(refresh, 8);
-  run('INSERT INTO refresh_tokens (user_id,token_hash,expires_at,created_at) VALUES (?,?,?,?)',
-    user.id, tokenHash, new Date(Date.now() + REFRESH_TTL_DAYS * 86400000).toISOString(), now());
+  (await run('INSERT INTO refresh_tokens (user_id,token_hash,expires_at,created_at) VALUES (?,?,?,?)',
+    user.id, tokenHash, new Date(Date.now() + REFRESH_TTL_DAYS * 86400000).toISOString(), now()));
   res.cookie('ds_access', access, { ...cookieOpts, maxAge: 15 * 60 * 1000 });
   res.cookie('ds_refresh', refresh, { ...cookieOpts, path: '/api/auth', maxAge: REFRESH_TTL_DAYS * 86400000 });
   // Non-sensitive marker lets the SPA skip the /me call for anonymous visitors.
@@ -26,9 +26,9 @@ export function issueTokens(res: Response, user: SafeUser) {
   return { access };
 }
 
-export function revokeRefresh(refresh: string) {
-  const rows = db.prepare('SELECT id, token_hash FROM refresh_tokens WHERE revoked_at IS NULL').all() as any[];
-  for (const row of rows) if (bcrypt.compareSync(refresh, row.token_hash)) run('UPDATE refresh_tokens SET revoked_at=? WHERE id=?', now(), row.id);
+export async function revokeRefresh(refresh: string) {
+  const rows = await all<any>('SELECT id, token_hash FROM refresh_tokens WHERE revoked_at IS NULL');
+  for (const row of rows) if (bcrypt.compareSync(refresh, row.token_hash)) (await run('UPDATE refresh_tokens SET revoked_at=? WHERE id=?', now(), row.id));
 }
 
 export function verifyAccessToken(token?: string): SafeUser | null {
@@ -40,15 +40,15 @@ export function verifyAccessToken(token?: string): SafeUser | null {
   } catch { return null; }
 }
 
-export function verifyRefreshToken(token?: string): SafeUser | null {
+export async function verifyRefreshToken(token?: string): Promise<SafeUser | null> {
   if (!token) return null;
   try {
     const payload = jwt.verify(token, REFRESH_SECRET) as any;
     if (payload.type !== 'refresh') return null;
-    const rows = db.prepare('SELECT user_id, token_hash, revoked_at, expires_at FROM refresh_tokens WHERE user_id=?').all(payload.id) as any[];
+    const rows = await all<any>('SELECT user_id, token_hash, revoked_at, expires_at FROM refresh_tokens WHERE user_id=?', payload.id);
     const valid = rows.find((r) => !r.revoked_at && new Date(r.expires_at) > new Date() && bcrypt.compareSync(token, r.token_hash));
     if (!valid) return null;
-    const u = db.prepare('SELECT * FROM users WHERE id=? AND status=?').get(payload.id, 'active') as any;
+    const u = await get<any>('SELECT * FROM users WHERE id=? AND status=?', payload.id, 'active');
     return u ? publicUser(u) : null;
   } catch { return null; }
 }
@@ -67,24 +67,24 @@ export class MockSmsProvider implements SmsProvider {
 }
 export const smsProvider: SmsProvider = new MockSmsProvider();
 
-export function createOtp(phone: string) {
+export async function createOtp(phone: string) {
   const code = DEV_OTP;
-  run('DELETE FROM otp_codes WHERE phone=? OR expires_at < ?', phone, now());
-  run('INSERT INTO otp_codes (phone,code_hash,attempts,expires_at,created_at) VALUES (?,?,0,?,?)',
-    phone, bcrypt.hashSync(code, 8), new Date(Date.now() + 10 * 60000).toISOString(), now());
+  (await run('DELETE FROM otp_codes WHERE phone=? OR expires_at < ?', phone, now()));
+  (await run('INSERT INTO otp_codes (phone,code_hash,attempts,expires_at,created_at) VALUES (?,?,0,?,?)',
+    phone, bcrypt.hashSync(code, 8), new Date(Date.now() + 10 * 60000).toISOString(), now()));
   return code;
 }
 
-export function verifyOtp(phone: string, code: string): 'ok' | 'invalid' | 'expired' | 'locked' {
-  const record = db.prepare('SELECT * FROM otp_codes WHERE phone=? ORDER BY id DESC LIMIT 1').get(phone) as any;
+export async function verifyOtp(phone: string, code: string): Promise<'ok' | 'invalid' | 'expired' | 'locked'> {
+  const record = await get<any>('SELECT * FROM otp_codes WHERE phone=? ORDER BY id DESC LIMIT 1', phone);
   if (!record) return 'invalid';
   if (new Date(record.expires_at) < new Date()) return 'expired';
   if (record.attempts >= 5) return 'locked';
   if (!bcrypt.compareSync(code, record.code_hash)) {
-    run('UPDATE otp_codes SET attempts=attempts+1 WHERE id=?', record.id);
+    (await run('UPDATE otp_codes SET attempts=attempts+1 WHERE id=?', record.id));
     return 'invalid';
   }
-  run('DELETE FROM otp_codes WHERE id=?', record.id);
+  (await run('DELETE FROM otp_codes WHERE id=?', record.id));
   return 'ok';
 }
 

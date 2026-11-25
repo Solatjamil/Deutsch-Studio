@@ -36,47 +36,47 @@ export function requireRole(...roles: string[]) {
 export const isStaff = (user: any) => user?.role === 'tutor' || user?.role === 'admin';
 
 /** Object-level authorization: never trust a student id supplied by the client. */
-export function assertStudentAccess(user: any, studentId: number) {
+export async function assertStudentAccess(user: any, studentId: number) {
   if (isStaff(user)) return;
   if (user.role === 'student' && Number(user.id) === Number(studentId)) return;
   if (user.role === 'parent') {
-    const link = get('SELECT id FROM parent_student_links WHERE parent_id=? AND student_id=? AND status=?', user.id, studentId, 'active');
+    const link = (await get('SELECT id FROM parent_student_links WHERE parent_id=? AND student_id=? AND status=?', user.id, studentId, 'active'));
     if (link) return;
   }
   throw Object.assign(new Error('You cannot access this student record'), { status: 403 });
 }
 
-export function assertBatchAccess(user: any, batchId: number) {
+export async function assertBatchAccess(user: any, batchId: number) {
   if (isStaff(user)) return;
-  const enrolled = get('SELECT id FROM enrollments WHERE batch_id=? AND student_id=? AND status=?', batchId, user.id, 'active');
+  const enrolled = (await get('SELECT id FROM enrollments WHERE batch_id=? AND student_id=? AND status=?', batchId, user.id, 'active'));
   if (user.role === 'student' && enrolled) return;
   if (user.role === 'parent') {
-    const childIds = all<{ student_id: number }>('SELECT student_id FROM parent_student_links WHERE parent_id=? AND status=?', user.id, 'active').map((r) => r.student_id);
-    if (childIds.some((id) => get('SELECT id FROM enrollments WHERE batch_id=? AND student_id=?', batchId, id))) return;
+    const childIds = (await all<{ student_id: number }>('SELECT student_id FROM parent_student_links WHERE parent_id=? AND status=?', user.id, 'active')).map((r) => r.student_id);
+    if (childIds.some(async (id) => (await get('SELECT id FROM enrollments WHERE batch_id=? AND student_id=?', batchId, id)))) return;
   }
   throw Object.assign(new Error('You cannot access this batch'), { status: 403 });
 }
 
-export function assertRoomAccess(user: any, roomId: number) {
+export async function assertRoomAccess(user: any, roomId: number) {
   if (isStaff(user)) return;
-  const member = get('SELECT user_id FROM chat_members WHERE room_id=? AND user_id=?', roomId, user.id);
+  const member = (await get('SELECT user_id FROM chat_members WHERE room_id=? AND user_id=?', roomId, user.id));
   if (member) return;
   throw Object.assign(new Error('You are not a member of this conversation'), { status: 403 });
 }
 
 /** Visible student ids for the current user. Staff see all; parents see linked children. */
-export function visibleStudents(user: any): number[] {
-  if (isStaff(user)) return all<{ id: number }>("SELECT id FROM users WHERE role='student'").map((r) => r.id);
+export async function visibleStudents(user: any): Promise<number[]> {
+  if (isStaff(user)) return (await all<{ id: number }>("SELECT id FROM users WHERE role='student'")).map((r) => r.id);
   if (user.role === 'student') return [Number(user.id)];
-  return all<{ student_id: number }>('SELECT student_id FROM parent_student_links WHERE parent_id=? AND status=?', user.id, 'active').map((r) => r.student_id);
+  return (await all<{ student_id: number }>('SELECT student_id FROM parent_student_links WHERE parent_id=? AND status=?', user.id, 'active')).map((r) => r.student_id);
 }
 
-export function audit(req: Request, action: string, target?: any) {
+export async function audit(req: Request, action: string, target?: any) {
   try {
     const actor = (req as any).user?.id || null;
     // Never store tokens, passwords, card data or request bodies in the audit log.
     const safe = target && typeof target === 'object' ? JSON.stringify(target).slice(0, 500) : target ? String(target).slice(0, 200) : null;
-    run('INSERT INTO audit_logs (actor_id,action,target,created_at) VALUES (?,?,?,?)', actor, action, safe, new Date().toISOString());
+    (await run('INSERT INTO audit_logs (actor_id,action,target,created_at) VALUES (?,?,?,?)', actor, action, safe, new Date().toISOString()));
   } catch { /* audit must never break a request */ }
 }
 

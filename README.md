@@ -134,10 +134,59 @@ Latest verified result: **67/67 API checks passed** and **84/84 browser checks p
 
 ---
 
+## Vercel deployment (serverless)
+
+The app is deployment-ready for Vercel with a managed PostgreSQL database and Vercel Blob. Local development remains unchanged (SQLite + local uploads + WebSocket chat).
+
+### 1. Provision services
+
+1. Import this repository into Vercel. Use **Node.js 20.x** (or newer), build command `npm run build`, output directory `apps/web/dist`. `vercel.json` already contains the SPA and `/api/*` rewrites and the serverless function config.
+2. Create a managed Postgres database (Vercel Postgres, Neon, Supabase, etc.) and copy its connection string.
+3. Create a Vercel Blob store if you want uploads/voice notes to survive cold starts.
+
+### 2. Environment variables
+
+Set these in the Vercel project (see `.env.example` for all options):
+
+| Variable | Value |
+| --- | --- |
+| `DB_DRIVER` | `postgres` |
+| `POSTGRES_URL` | Managed Postgres connection string (`DATABASE_URL` also works) |
+| `JWT_SECRET`, `REFRESH_SECRET` | Different long random values (`node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`) |
+| `CORS_ORIGIN` | Your Vercel domain, e.g. `https://your-app.vercel.app` (leave blank for same-origin) |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob read/write token (enables cloud uploads) |
+| `DEMO_AUTO_LOGIN` | `true` to keep the no-login role switcher |
+| `AUTO_SEED` | `true` for one deployment to create demo data, then unset it |
+| `PGSSL` | `false` only if your provider requires no TLS |
+
+### 3. Seed and verify
+
+Either deploy once with `AUTO_SEED=true`, or seed from a machine that can reach the database:
+
+```bash
+POSTGRES_URL='postgres://…' DB_DRIVER=postgres npm run seed:postgres
+```
+
+Check `https://<your-project>.vercel.app/api/health`, then open the site: it opens directly in the Student demo session; the header selector switches Student/Parent/Tutor/Admin.
+
+### What changes on Vercel
+
+- **Database**: `apps/api/src/db/index.ts` picks `pg` when `DB_DRIVER=postgres`, keeps the same `?` placeholders (translated to `$1…$n`), and applies `apps/api/src/db/schema.postgres.ts` on cold start. Managed Postgres is required — serverless filesystems are ephemeral.
+- **API**: `api/index.ts` runs the same Express app via `serverless-http`; no persistent Node process or port binding is needed. `apps/api/src/index.ts` remains the local dev/production Node entry point with WebSocket support.
+- **Uploads**: with `BLOB_READ_WRITE_TOKEN` set, `saveUpload()` writes to Vercel Blob; `GET /api/uploads/:name` remains authenticated and proxies the bytes, so clients never receive direct storage URLs.
+- **Chat**: the browser uses REST polling every 3 seconds whenever a WebSocket is not available. Sending still uses the normal authenticated REST endpoint; realtime push stays enabled in local/self-hosted mode.
+- **Payments, SMS, OTP, RBAC, CSRF, rate limits and audit logs** behave identically; the mock gateway never handles card data.
+
+> Verification: the full 67-check API loop, the 84-check browser loop, TypeScript checks and the web/PWA build were rerun against both SQLite (local) and a real PostgreSQL instance; the serverless handler was smoke-tested for `/api/health`, CSRF bootstrap, demo login, role dashboards and chat polling.
+
+> For self-hosting with a long-running Node server, leave `DB_DRIVER=sqlite` (or set `DB_DRIVER=postgres` with `POSTGRES_URL`) and run `npm run start` — that keeps WebSocket chat instead of the polling fallback.
+
+---
+
 ## Known limitations / next steps
 
 1. **Demo data only** — SMS, payments, video meetings and push are sandbox implementations; production needs the provider adapters noted above.
-2. **SQLite demo database** — suitable for a single-instance demo; production should use PostgreSQL with the same schema shapes and migrations.
+2. **SQLite demo database** — local development only; Vercel deployments use managed PostgreSQL (`DB_DRIVER=postgres`) and Vercel Blob as described above.
 3. **Chat blocking is one-sided** — blocked users are hidden from the blocker's client; a production system needs two-way moderation and abuse analytics.
 4. **Audio playback position is per-device** — video resume and bookmarks use `localStorage`; syncing them to the API would be needed for cross-device continuity.
 5. **Offline video** uses the Cache API where supported; large media and range requests need a more robust strategy (e.g. HLS + service worker streaming).
