@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Deutsch Studio logo">
+  <rect width="512" height="512" rx="112" fill="#1f6f5c"/>
+  <path d="M142 126h92c80 0 132 52 132 130s-52 130-132 130h-92V126zm92 196c42 0 68-25 68-66s-26-66-68-66h-28v132h28z" fill="#fff"/>
+  <circle cx="372" cy="144" r="30" fill="#e0a458"/>
+  <path d="M358 144h28M372 130v28" stroke="#1f6f5c" stroke-width="8" stroke-linecap="round"/>
+</svg>
