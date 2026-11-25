@@ -45,8 +45,16 @@ authRouter.post('/otp/verify', validate(z.object({ phone: z.string().min(7), cod
 authRouter.post('/demo', validate(z.object({ role: z.enum(['student', 'parent', 'tutor', 'admin']).optional() })), asyncRoute(async (req, res) => {
       if (process.env.DEMO_AUTO_LOGIN === 'false') return res.status(403).json({ error: 'Demo access is disabled.' });
       const role = req.body.role || 'student';
-      const u = (await get<any>('SELECT * FROM users WHERE role=? AND status=? ORDER BY id ASC LIMIT 1', role, 'active'));
-      if (!u) return res.status(404).json({ error: `No demo ${role} account found.` });
+      let u = (await get<any>('SELECT * FROM users WHERE role=? AND status=? ORDER BY id ASC LIMIT 1', role, 'active'));
+      // First request on a fresh managed database: create the demo dataset once.
+      if (!u && process.env.AUTO_SEED !== 'false') {
+        try {
+          const { runSeed } = await import('../db/seed.js');
+          await runSeed();
+          u = (await get<any>('SELECT * FROM users WHERE role=? AND status=? ORDER BY id ASC LIMIT 1', role, 'active'));
+        } catch (err) { console.error('On-demand demo seed failed:', err); }
+      }
+      if (!u) return res.status(404).json({ error: `No demo ${role} account found. Check DATABASE/POSTGRES_URL and AUTO_SEED settings.` });
       (await issueTokens(res, publicUser(u)));
       res.json({ user: publicUser(u) });
     }));

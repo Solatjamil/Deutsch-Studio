@@ -150,7 +150,7 @@ Set these in the Vercel project (see `.env.example` for all options):
 
 | Variable | Value |
 | --- | --- |
-| `DB_DRIVER` | `postgres` |
+| `DB_DRIVER` | `postgres` (inferred automatically when `POSTGRES_URL` is set) |
 | `POSTGRES_URL` | Managed Postgres connection string (`DATABASE_URL` also works) |
 | `JWT_SECRET`, `REFRESH_SECRET` | Different long random values (`node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`) |
 | `CORS_ORIGIN` | Your Vercel domain, e.g. `https://your-app.vercel.app` (leave blank for same-origin) |
@@ -161,7 +161,7 @@ Set these in the Vercel project (see `.env.example` for all options):
 
 ### 3. Seed and verify
 
-Either deploy once with `AUTO_SEED=true`, or seed from a machine that can reach the database:
+If the database is empty, the first demo login seeds it automatically unless `AUTO_SEED=false`. You can also seed explicitly from a machine that can reach the database:
 
 ```bash
 POSTGRES_URL='postgres://…' DB_DRIVER=postgres npm run seed:postgres

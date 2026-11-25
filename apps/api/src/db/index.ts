@@ -10,7 +10,7 @@ import { SCHEMA_PG } from './schema.postgres.js';
  * - Vercel/serverless: PostgreSQL (Neon/Supabase/Vercel Postgres) with the same
  *   `?` placeholders in application code, translated to `$1..$n` here.
  */
-export const DRIVER = process.env.DB_DRIVER || 'sqlite';
+export const DRIVER = process.env.DB_DRIVER || ((process.env.POSTGRES_URL || process.env.DATABASE_URL) ? 'postgres' : 'sqlite');
 let sqlite: any = null;
 let pool: any = null;
 

@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import { pathToFileURL } from 'node:url';
 import { now, daysFromNow, get, all, run } from './index.js';
 
 /** Deterministic demo data generator. Safe to re-run: it only seeds an empty DB. */
@@ -308,6 +309,9 @@ async function seed() {
   console.log('Demo password for every account: ' + PASSWORD + ' · Demo OTP: 123456');
 }
 
-runSeed().catch((err) => { console.error('Seed failed:', err); process.exitCode = 1; });
-
 export async function runSeed() { await seed(); }
+
+// Run automatically only when invoked as `tsx src/db/seed.ts`.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  runSeed().catch((err) => { console.error('Seed failed:', err); process.exitCode = 1; });
+}

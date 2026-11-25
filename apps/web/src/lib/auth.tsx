@@ -12,6 +12,7 @@ type AuthState = {
   children: any[];
   institute: any;
   loading: boolean;
+  authError: string | null;
   refresh: () => Promise<void>;
   loginPassword: (email: string, password: string) => Promise<void>;
   loginOtp: (phone: string, code: string, name?: string, role?: string) => Promise<void>;
@@ -28,6 +29,7 @@ export function AuthProvider({ children: kids }: { children: ReactNode }) {
   const [childList, setChildList] = useState<any[]>([]);
   const [institute, setInstitute] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -41,8 +43,8 @@ export function AuthProvider({ children: kids }: { children: ReactNode }) {
     const role = localStorage.getItem('ds-demo-role') || 'student';
     bootstrapCsrf()
       .then(() => api.post('/auth/demo', { role }))
-      .then((d) => { setUser(d.user); return refresh(); })
-      .catch(() => setUser(null))
+      .then((d) => { setUser(d.user); setAuthError(null); return refresh(); })
+      .catch((err: any) => { setUser(null); setAuthError(err?.message || 'Unable to start the demo session.'); })
       .finally(() => setLoading(false));
     const expired = () => { setUser(null); document.cookie = 'ds_session=; Max-Age=0; path=/'; };
     window.addEventListener('auth:expired', expired);
@@ -50,7 +52,7 @@ export function AuthProvider({ children: kids }: { children: ReactNode }) {
   }, [refresh]);
 
   const value = useMemo<AuthState>(() => ({
-    user, children: childList, institute, loading, refresh,
+    user, children: childList, institute, loading, authError, refresh,
     loginPassword: async (email, password) => { const d = await api.post('/auth/password', { email, password }); setUser(d.user); await refresh(); },
     loginOtp: async (phone, code, name, role) => { const d = await api.post('/auth/otp/verify', { phone, code, name, role }); setUser(d.user); await refresh(); },
     logout: async () => { try { await api.post('/auth/logout'); } finally { setUser(null); setChildList([]); } },

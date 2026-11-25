@@ -12,7 +12,7 @@ export default async function vercelHandler(req: any, res: any) {
   // as a deployment step; keep AUTO_SEED off for normal production traffic.
   if (process.env.AUTO_SEED === 'true') {
     if (!seedPromise) {
-      seedPromise = import('../apps/api/src/db/seed').catch((err) => {
+      seedPromise = import('../apps/api/src/db/seed').then((m) => m.runSeed()).catch((err) => {
         console.error('Demo seed failed:', err);
         seedPromise = null;
       });
