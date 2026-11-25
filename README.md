@@ -171,7 +171,7 @@ Check `https://<your-project>.vercel.app/api/health`, then open the site: it ope
 
 ### What changes on Vercel
 
-- **Database**: `apps/api/src/db/index.ts` picks `pg` when `DB_DRIVER=postgres`, keeps the same `?` placeholders (translated to `$1…$n`), and applies `apps/api/src/db/schema.postgres.ts` on cold start. Managed Postgres is required — serverless filesystems are ephemeral.
+- **Database**: `better-sqlite3` is an optional dependency, so Vercel does not try to compile its native binary; `apps/api/src/db/index.ts` picks `pg` when `DB_DRIVER=postgres`, keeps the same `?` placeholders (translated to `$1…$n`), and applies `apps/api/src/db/schema.postgres.ts` on cold start. Managed Postgres is required — serverless filesystems are ephemeral.
 - **API**: `api/index.ts` runs the same Express app via `serverless-http`; no persistent Node process or port binding is needed. `apps/api/src/index.ts` remains the local dev/production Node entry point with WebSocket support.
 - **Uploads**: with `BLOB_READ_WRITE_TOKEN` set, `saveUpload()` writes to Vercel Blob; `GET /api/uploads/:name` remains authenticated and proxies the bytes, so clients never receive direct storage URLs.
 - **Chat**: the browser uses REST polling every 3 seconds whenever a WebSocket is not available. Sending still uses the normal authenticated REST endpoint; realtime push stays enabled in local/self-hosted mode.

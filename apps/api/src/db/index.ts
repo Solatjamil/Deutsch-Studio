@@ -46,7 +46,9 @@ async function init() {
     try { await pool.query('ALTER TABLE files ADD COLUMN IF NOT EXISTS storage_url TEXT'); } catch { /* ignore */ }
     return;
   }
-  const Database = (await import('better-sqlite3')).default;
+  // Indirect import keeps the native SQLite module out of serverless bundles.
+  const sqliteModule = 'better-sqlite3';
+  const Database = (await import(sqliteModule)).default;
   sqlite = new Database(DB_PATH);
   sqlite.pragma('journal_mode = WAL');
   sqlite.pragma('foreign_keys = ON');
