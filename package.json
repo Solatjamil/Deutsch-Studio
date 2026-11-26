@@ -18,7 +18,8 @@
     "reset": "rm -f data/deutsch-studio.db && npm run seed",
     "test:ui": "node scripts/ui-loop.mjs",
     "test:all": "node scripts/loop-test.mjs && node scripts/ui-loop.mjs",
-    "seed:postgres": "npm run seed:postgres -w @deutsch/api"
+    "seed:postgres": "npm run seed:postgres -w @deutsch/api",
+    "build:vercel": "node scripts/vercel-build.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.1",

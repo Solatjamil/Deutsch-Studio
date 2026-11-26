@@ -35,7 +35,7 @@ function RequireAuth({ children }: { children: ReactNode }) {
       <div className="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-sm dark:bg-slate-900">
         <h1 className="text-lg font-extrabold text-ink-900 dark:text-white">Demo session unavailable</h1>
         <p className="mt-2 text-sm text-ink-500 dark:text-slate-400">{authError || 'The app could not start a demo session. Check the API configuration and try again.'}</p>
-        <p className="mt-2 text-xs text-ink-500 dark:text-slate-500">On Vercel, set DB_DRIVER=postgres, POSTGRES_URL, JWT_SECRET and REFRESH_SECRET, then redeploy.</p>
+        <p className="mt-2 text-xs text-ink-500 dark:text-slate-500">On Vercel, set POSTGRES_URL, JWT_SECRET and REFRESH_SECRET, then redeploy. Check the deployment Runtime Logs for /api/auth/demo if it persists.</p>
         <div className="mt-5 flex justify-center gap-3">
           <button onClick={() => location.reload()} className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-bold text-white">Retry</button>
           <a href="/" className="rounded-xl px-4 py-2 text-sm font-bold text-ink-600 hover:bg-ink-100 dark:text-slate-300 dark:hover:bg-slate-800">Home</a>
